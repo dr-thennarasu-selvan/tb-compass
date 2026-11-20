@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resistance Explorer · TB Compass</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='12' y='30' width='76' height='40' rx='20' fill='%23e3ecf6' stroke='%23c4553f' stroke-width='6'/></svg>">
+<style>
+  /* Light is the default: calm warm paper, muted clinical colours.
+     Dark is a softened alternative, chosen with the toggle in the top bar. */
+  :root{
+    --bg:#f5f3ee; --panel:#ffffff; --panel-2:#eeebe4; --surface:#faf9f6; --top:#f5f3eeee;
+    --line:#e4e0d7; --line-2:#d3cdc1; --hover:#a9b8c9;
+    --ink:#1f2933; --ink-2:#4a5664; --ink-3:#6b7785; --ink-4:#8c96a1; --on-ink:#f5f3ee;
+    --susceptible:#2e8b74; --resistant:#c4553f; --implied:#b7821a; --hidden:#7660ad; --accent:#3b6fa6;
+    --sus-bg:#e2f1ec; --res-bg:#f8e5e0; --imp-bg:#f7eedb; --hid-bg:#ece8f6; --acc-bg:#e3ecf6;
+    --sus-line:#a9d6c9; --res-line:#e8b4a8; --imp-line:#e4cd97; --hid-line:#c9bfe6; --acc-line:#b3cae3;
+    --dim:#d2ccc0; --on-sem:#ffffff;
+    /* the bacillus */
+    --halo:#9fbcd4; --cell-wall:#c2d6e4; --cell-wall-2:#a3bfd3; --cell-ring:#7fa3bf; --cell-myc:#b4cbdc;
+    --cyto-1:#f1f6f9; --cyto-2:#d8e6ef; --cyto-edge:#b9cedd;
+    --dna:#5b8db3; --dna-site:#7aa6c6; --s-ribo50:#9c83c4; --s-ribo30:#d0957d; --s-atp:#2e8b74;
+    --s-efflux:#cf7f61; --s-energy:#5c9f7f; --s-pepti:#8f9c55; --s-nitro:#b076a8; --s-fill:#ffffff;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  :root[data-theme="dark"]{
+    --bg:#15191f; --panel:#1c222b; --panel-2:#181d24; --surface:#20262f; --top:#15191fee;
+    --line:#29313c; --line-2:#36404d; --hover:#5f7894;
+    --ink:#e5e8ec; --ink-2:#a9b2bd; --ink-3:#808b98; --ink-4:#67727f; --on-ink:#15191f;
+    --susceptible:#62b7a2; --resistant:#e07f6c; --implied:#d6a64e; --hidden:#a594d4; --accent:#82a9d4;
+    --sus-bg:#1c302b; --res-bg:#36231f; --imp-bg:#332b1b; --hid-bg:#29253b; --acc-bg:#1e2a38;
+    --sus-line:#2f574d; --res-line:#5e3830; --imp-line:#5a4826; --hid-line:#463e66; --acc-line:#344c66;
+    --dim:#323b47; --on-sem:#11161c;
+    --halo:#3c5a74; --cell-wall:#2c4458; --cell-wall-2:#1f3242; --cell-ring:#57809f; --cell-myc:#3a5d78;
+    --cyto-1:#2a4153; --cyto-2:#1a2a37; --cyto-edge:#2a4153;
+    --dna:#86b1cf; --dna-site:#a3c7de; --s-ribo50:#bba5dc; --s-ribo30:#dcae9a; --s-atp:#62b7a2;
+    --s-efflux:#e09a7d; --s-energy:#82c09f; --s-pepti:#b2bd86; --s-nitro:#cf9ec7; --s-fill:#1c2c3a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;transition:background .3s,color .3s}
+  button{font-family:var(--sans)}
+
+  /* ---------- top bar ---------- */
+  .head{position:sticky;top:0;z-index:30}
+  .demo{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 16px;background:var(--res-bg);
+        border-bottom:1px solid var(--res-line);color:var(--ink);font-size:12.5px;font-weight:650;text-align:center;line-height:1.35}
+  .demo svg{width:15px;height:15px;flex:none;color:var(--resistant)}
+  .top{display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:1px solid var(--line);
+       background:var(--top);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand b{font-size:19px;letter-spacing:.14em;font-weight:800;white-space:nowrap}
+  .brand b span{color:var(--accent)}
+  .brand .home{align-self:center;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+         background:var(--panel);color:var(--ink-2);text-decoration:none;font-size:15px}
+  .brand .home:hover{color:var(--ink);border-color:var(--hover)}
+  .brand i{font-style:normal;font-size:12.5px;color:var(--ink-2)}
+  .modes{margin-left:auto;display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .modes button{border:0;background:transparent;color:var(--ink-3);font-size:11px;font-weight:700;letter-spacing:.1em;
+                padding:7px 14px;border-radius:999px;cursor:pointer}
+  .modes button:hover{color:var(--ink)}
+  .modes button[data-on="true"]{background:var(--ink);color:var(--on-ink)}
+  .theme{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);
+         cursor:pointer;display:grid;place-items:center;padding:0}
+  .theme:hover{color:var(--ink);border-color:var(--hover)}
+  .theme svg{width:15px;height:15px}
+
+  /* ---------- layout ---------- */
+  .wrap{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.8fr);min-height:calc(100vh - 56px)}
+  .stage{position:relative;padding:14px 18px 22px;border-right:1px solid var(--line);min-width:0}
+  .rail{padding:16px 18px 40px;background:var(--panel-2);min-width:0}
+
+  /* ---------- mode panel (course / cases / drill) ---------- */
+  .modepanel{display:none;margin-bottom:10px}
+  .modepanel[data-on="true"]{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(-4px)}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(31,41,51,.04)}
+  .card .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--accent);margin-bottom:5px}
+  .card h2{margin:0 0 6px;font-size:16px;letter-spacing:.01em}
+  .card p{margin:0 0 8px;font-size:12.5px;color:var(--ink-2);line-height:1.55}
+  .card p b{color:var(--ink)}
+  .card .cite{font-family:var(--mono);font-size:9.5px;color:var(--ink-4);line-height:1.5}
+  .card .row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .btn{background:var(--ink);color:var(--on-ink);border:0;font-weight:700;font-size:11.5px;letter-spacing:.06em;
+       padding:8px 14px;border-radius:8px;cursor:pointer}
+  .btn:disabled{opacity:.35;cursor:default}
+  .ghost{background:var(--panel);border:1px solid var(--line-2);color:var(--ink-2);font-size:11px;font-weight:700;
+         letter-spacing:.07em;padding:7px 12px;border-radius:8px;cursor:pointer}
+  .ghost:hover{color:var(--ink);border-color:var(--hover)}
+  .dots{display:flex;gap:5px;margin-left:auto}
+  .dots i{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+  .dots i[data-on="true"]{background:var(--accent)}
+
+  .cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px}
+  .case{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 11px;cursor:pointer;color:var(--ink)}
+  .case:hover{border-color:var(--hover)}
+  .case[data-on="true"]{border-color:var(--accent);background:var(--acc-bg)}
+  .case .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-3)}
+  .case .tt{font-size:12.5px;font-weight:650;margin-top:3px;line-height:1.3}
+  .casebox{margin-top:10px}
+
+  .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:7px;margin-top:6px}
+  .opt{text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:9px;
+       padding:9px 11px;cursor:pointer;font-size:12px;line-height:1.3}
+  .opt:hover:not(:disabled){border-color:var(--hover)}
+  .opt[data-r="right"]{border-color:var(--susceptible);background:var(--sus-bg)}
+  .opt[data-r="wrong"]{border-color:var(--resistant);background:var(--res-bg)}
+  .opt:disabled{cursor:default}
+  .q{font-size:12.5px;font-weight:650;margin:12px 0 2px}
+  .score{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .score b{color:var(--accent)}
+  .verdict{margin-top:10px;font-size:12px;line-height:1.55;color:var(--ink-2);border-left:3px solid var(--line-2);padding:4px 0 4px 10px}
+  .verdict b{color:var(--ink)}
+
+  /* ---------- stage ---------- */
+  .stage-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  .hint{font-size:12px;color:var(--ink-3)}
+  svg{display:block;width:100%;height:auto;touch-action:manipulation}
+
+  #cell{transform-origin:430px 280px;animation:breathe 6s ease-in-out infinite}
+  @keyframes breathe{50%{transform:scale(1.012)}}
+  .helix{stroke-dasharray:6 3;animation:helix 3.5s linear infinite}
+  @keyframes helix{to{stroke-dashoffset:-36}}
+
+  .node{cursor:pointer;outline:none}
+  .node .pill{fill:var(--panel);stroke:var(--line-2);stroke-width:1.2;transition:fill .22s,stroke .22s;
+              filter:drop-shadow(0 1px 1.5px rgba(31,41,51,.08))}
+  .node:hover .pill,.node:focus .pill{stroke:var(--accent)}
+  .node .code{font-family:var(--mono);font-size:13px;font-weight:700;fill:var(--ink);letter-spacing:.02em;pointer-events:none}
+  .node .nm{font-size:9.5px;fill:var(--ink-3);letter-spacing:.06em;pointer-events:none}
+  .node[data-state="resistant"] .pill{fill:var(--res-bg);stroke:var(--resistant)}
+  .node[data-state="resistant"] .code{fill:var(--resistant)}
+  .node[data-state="implied"] .pill{fill:var(--imp-bg);stroke:var(--implied);stroke-dasharray:3 2.5}
+  .node[data-state="implied"] .code{fill:var(--implied)}
+  .node[data-state="hidden"] .pill{fill:var(--hid-bg);stroke:var(--hidden);stroke-dasharray:2 3}
+  .node[data-state="hidden"] .code{fill:var(--hidden)}
+  .node .q-badge{display:none}
+  .node[data-state="hidden"] .q-badge{display:block}
+  .node .q-badge circle{fill:var(--hidden)}
+  .node .q-badge text{fill:var(--on-sem)}
+  .node[data-locked="true"]{cursor:default}
+
+  .edge{stroke:var(--dim);stroke-width:1.2;fill:none;transition:stroke .25s,opacity .25s}
+  .edge[data-state="resistant"]{stroke:var(--resistant);stroke-width:1.6;opacity:.75}
+  .edge[data-state="implied"]{stroke:var(--implied);stroke-dasharray:4 3;opacity:.8}
+  .edge[data-state="hidden"]{stroke:var(--hidden);stroke-dasharray:2 4;opacity:.6}
+  .edge[data-focus="true"]{stroke:var(--accent);opacity:1;stroke-width:2}
+  .xedge{stroke:var(--implied);stroke-width:1.8;fill:none;stroke-dasharray:5 4;opacity:0;transition:opacity .3s}
+  .xedge[data-on="true"]{opacity:.85;animation:flow 1.1s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-18}}
+  .site{transition:opacity .25s}
+  .site[data-hit="true"]{opacity:.28}
+  .mark{opacity:0;transition:opacity .25s;pointer-events:none}
+  .mark[data-on="resistant"]{opacity:1;stroke:var(--resistant)}
+  .mark[data-on="implied"]{opacity:1;stroke:var(--implied)}
+  .mark[data-on="hidden"]{opacity:.9;stroke:var(--hidden)}
+  .mark[data-on="resistant"],.mark[data-on="implied"]{animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{50%{stroke-width:4}}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:2px;font-size:11px;color:var(--ink-3)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+  /* ---------- drug card ---------- */
+  .dcard{margin-top:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 13px;min-height:58px}
+  .dcard .h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+  .dcard .h b{font-family:var(--mono);font-size:14px}
+  .dcard .h span{font-size:11px;letter-spacing:.08em;color:var(--ink-3)}
+  .dcard .h em{font-style:normal;font-size:10.5px;color:var(--ink-2);margin-left:auto}
+  .dcard .l{font-size:11.5px;color:var(--ink-2);line-height:1.5;margin-top:4px}
+  .dcard .l b{color:var(--ink);font-weight:650}
+  .dcard .empty{font-size:11.5px;color:var(--ink-3)}
+
+  /* ---------- time axis ---------- */
+  .timeline{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px 10px}
+  .tl-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .tl-head h4{margin:0;font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+  .tl-head .play{width:28px;height:28px;border-radius:50%;border:0;background:var(--accent);color:var(--on-sem);
+       cursor:pointer;font-size:11px;display:grid;place-items:center;padding:0}
+  .tl-head .now{margin-left:auto;font-size:11px;color:var(--ink-2)}
+  .track{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:0}
+  .track::before{content:"";position:absolute;left:10%;right:10%;top:9px;height:3px;background:var(--line);border-radius:2px}
+  .track .fillbar{position:absolute;left:10%;top:9px;height:3px;background:var(--accent);border-radius:2px;
+       transition:width .45s cubic-bezier(.4,0,.2,1)}
+  .stop{position:relative;text-align:center;cursor:pointer;background:none;border:0;color:var(--ink-3);padding:0 3px}
+  .stop .dot{width:21px;height:21px;border-radius:50%;margin:0 auto;background:var(--panel);border:2px solid var(--line-2);
+       position:relative;z-index:1;transition:all .25s}
+  .stop[data-past="true"] .dot{border-color:var(--accent);background:var(--acc-bg)}
+  .stop[data-on="true"] .dot{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 5px var(--acc-bg)}
+  .stop .lb{display:block;font-size:11px;font-weight:700;margin-top:6px;color:var(--ink-2);line-height:1.25}
+  .stop .sb{display:block;font-size:9.5px;margin-top:2px;line-height:1.3;color:var(--ink-3)}
+  .stop[data-on="true"] .lb{color:var(--accent)}
+  .tl-cite{font-family:var(--mono);font-size:9.5px;color:var(--ink-4);margin-top:8px}
+
+  /* ---------- isoniazid mutation fork ---------- */
+  .mut{margin-top:10px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+       border-radius:9px;padding:11px 13px;display:none}
+  .mut[data-on="true"]{display:block;animation:fade .3s ease}
+  .mut h4{margin:0 0 3px;font-size:12.5px;letter-spacing:.04em}
+  .mut p{margin:0 0 9px;font-size:11.5px;color:var(--ink-2);line-height:1.5}
+  .mut .mopts{display:flex;gap:7px;flex-wrap:wrap}
+  .mut .mopts button{flex:1;min-width:150px;text-align:left;background:var(--surface);border:1px solid var(--line);
+        color:var(--ink-2);border-radius:8px;padding:8px 11px;cursor:pointer}
+  .mut .mopts button b{display:block;font-family:var(--mono);font-size:12px;color:var(--ink);margin-bottom:2px}
+  .mut .mopts button small{font-size:10.5px;line-height:1.4;display:block}
+  .mut .mopts button[data-on="true"]{border-color:var(--accent);background:var(--acc-bg)}
+  .mut .mopts button[data-on="true"] b{color:var(--accent)}
+  .mut .mopts button:disabled{cursor:default}
+
+  /* ---------- rail panes ---------- */
+  .pane{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:12px;
+        box-shadow:0 1px 2px rgba(31,41,51,.04)}
+  .pane h3{margin:0 0 9px;font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);font-weight:800}
+  .src{font-family:var(--mono);font-size:9.5px;color:var(--ink-4);line-height:1.5;margin-top:9px;border-top:1px solid var(--line);padding-top:7px}
+  .masked{position:relative}
+  .masked[data-mask="true"] > *:not(h3){filter:blur(7px);pointer-events:none;user-select:none}
+  .masked[data-mask="true"]::after{content:"Answer the question to reveal";position:absolute;inset:34px 0 0;display:grid;place-items:center;
+       font-size:11px;letter-spacing:.08em;color:var(--ink-3)}
+
+  .cls{display:flex;align-items:center;gap:11px}
+  .cls .badge{font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:.02em;padding:7px 13px;border-radius:9px;
+       background:var(--sus-bg);color:var(--susceptible);border:1px solid var(--sus-line);white-space:nowrap;transition:all .25s}
+  .cls[data-sev="warn"] .badge{background:var(--imp-bg);color:var(--implied);border-color:var(--imp-line)}
+  .cls[data-sev="bad"] .badge{background:var(--res-bg);color:var(--resistant);border-color:var(--res-line)}
+  .cls .why{font-size:11.5px;color:var(--ink-2);line-height:1.45}
+  .prov{display:none;margin-top:9px;font-size:11px;line-height:1.45;color:var(--ink-2);background:var(--hid-bg);border:1px solid var(--hid-line);
+        border-radius:8px;padding:7px 10px}
+  .prov[data-on="true"]{display:block}
+  .prov b{color:var(--hidden)}
+
+  .reg{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+  .reg:first-of-type{border-top:0}
+  .reg .dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;background:var(--dim)}
+  .reg[data-ok="true"] .dot{background:var(--susceptible);box-shadow:0 0 0 3px var(--sus-bg)}
+  .reg .t{font-size:12.5px;font-weight:650;line-height:1.3}
+  .reg .s{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:2px}
+  .reg .r{font-size:10.5px;color:var(--ink-2);margin-top:4px;line-height:1.4;background:var(--imp-bg);border-left:2px solid var(--implied);
+          border-radius:0 6px 6px 0;padding:5px 8px}
+  .reg .r b{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--implied);display:block;margin-bottom:1px}
+  .reg .r i{font-style:normal;display:block;font-family:var(--mono);font-size:9px;color:var(--ink-4);margin-top:2px}
+  .reg[data-ok="false"]{opacity:.5}
+  .reg[data-ok="false"] .t{text-decoration:line-through;text-decoration-color:var(--ink-4)}
+
+  .months{position:relative;height:30px;background:var(--surface);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .months .fill{position:absolute;inset:0 auto 0 0;background:var(--susceptible);
+        border-radius:6px 0 0 6px;transition:width .5s cubic-bezier(.4,0,.2,1),background .4s}
+  .months[data-sev="warn"] .fill{background:var(--implied)}
+  .months[data-sev="bad"] .fill{background:var(--resistant)}
+  .months .lbl{position:absolute;left:10px;top:7px;font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--on-sem)}
+  .ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--ink-3);margin-top:4px}
+  .delta{font-size:11.5px;color:var(--ink-2);margin-top:7px;line-height:1.45}
+  .delta b{color:var(--implied)}
+
+  .xrow{display:flex;gap:9px;padding:8px 0;border-top:1px solid var(--line)}
+  .xrow:first-child{border-top:0}
+  .xrow .arrow{font-family:var(--mono);font-size:11.5px;color:var(--implied);white-space:nowrap;font-weight:700;flex:none;padding-top:1px}
+  .xrow .txt{font-size:11.5px;color:var(--ink-2);line-height:1.45}
+  .xrow .txt em{display:block;font-family:var(--mono);font-style:normal;font-size:9.5px;color:var(--ink-4);margin-top:3px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:10.5px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);padding:4px 9px;border-radius:999px}
+  .chip b{color:var(--ink);font-family:var(--mono)}
+  .grp{font-size:11px;color:var(--ink-2);line-height:1.5;margin-top:8px}
+  .grp b{font-family:var(--mono);color:var(--ink)}
+
+  .foot{padding:14px 22px 26px;color:var(--ink-3);font-size:11px;line-height:1.6;border-top:1px solid var(--line)}
+  .foot b{color:var(--ink-2)}
+  @media(max-width:1000px){ .wrap{grid-template-columns:1fr} .stage{border-right:0;border-bottom:1px solid var(--line)} }
+  @media(max-width:560px){ .stop .sb{display:none} .top{padding:10px 14px} .stage,.rail{padding-left:12px;padding-right:12px} }
+  @media(prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+
+<header class="head">
+<div class="demo" role="note">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 15 14H1z" stroke-linejoin="round"/><path d="M8 6.2v3.6M8 11.6v.4" stroke-linecap="round"/></svg>
+  <span>Demo for education only. Not for clinical use.</span>
+</div>
+<div class="top">
+  <div class="brand"><a class="home" href="../" aria-label="Back to TB Compass">&larr;</a><b>TB <span>COMPASS</span></b><i>Resistance Explorer: knock out a drug, watch the regimen collapse.</i></div>
+  <div class="modes" role="tablist">
+    <button data-mode="explore" data-on="true">EXPLORE</button>
+    <button data-mode="course">COURSE</button>
+    <button data-mode="cases">CASES</button>
+    <button data-mode="drill">DRILL</button>
+  </div>
+  <button class="theme" id="theme" aria-label="Switch to dark theme" title="Light / dark">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg>
+  </button>
+</div>
+</header>
+
+<div class="wrap">
+  <!-- ================= STAGE ================= -->
+  <div class="stage">
+
+    <div class="modepanel" id="p-course"></div>
+    <div class="modepanel" id="p-cases"></div>
+    <div class="modepanel" id="p-drill"></div>
+
+    <div class="stage-head">
+      <button class="ghost" id="reset">RESET TO FULLY SUSCEPTIBLE</button>
+      <span class="hint" id="hint">Click any drug to make the organism resistant to it. Hover to see how it works.</span>
+    </div>
+
+    <svg id="viz" viewBox="0 0 860 560" role="img" aria-label="M. tuberculosis with drug targets">
+      <defs>
+        <radialGradient id="cyto" cx="38%" cy="32%">
+          <stop offset="0%" style="stop-color:var(--cyto-1)"/><stop offset="100%" style="stop-color:var(--cyto-2)"/>
+        </radialGradient>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" style="stop-color:var(--cell-wall)"/><stop offset="100%" style="stop-color:var(--cell-wall-2)"/>
+        </linearGradient>
+        <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+          <stop offset="60%" style="stop-color:var(--halo)" stop-opacity=".22"/><stop offset="100%" style="stop-color:var(--halo)" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <ellipse cx="430" cy="280" rx="260" ry="150" fill="url(#halo)"/>
+      <g id="edges"></g>
+      <g id="xedges"></g>
+
+      <g id="cell">
+        <rect x="236" y="186" width="388" height="188" rx="94" fill="url(#wall)" opacity=".55"/>
+        <rect x="246" y="196" width="368" height="168" rx="84" fill="none" style="stroke:var(--cell-ring)" stroke-width="2.5" opacity=".75" class="site" data-site="wall"/>
+        <rect x="258" y="208" width="344" height="144" rx="72" fill="none" style="stroke:var(--cell-myc)" stroke-width="5" opacity=".8" class="site" data-site="mycolic"/>
+        <rect x="270" y="220" width="320" height="120" rx="60" fill="url(#cyto)" style="stroke:var(--cyto-edge)" stroke-width="1.5"/>
+
+        <path class="site helix" data-site="rnap" d="M345 258 q16 -16 32 0 q16 16 32 0 q16 -16 32 0 q16 16 32 0"
+              fill="none" style="stroke:var(--dna)" stroke-width="2.6" opacity=".95"/>
+        <path class="site helix" data-site="gyrase" d="M345 292 q16 16 32 0 q16 -16 32 0 q16 16 32 0 q16 -16 32 0"
+              fill="none" style="stroke:var(--dna)" stroke-width="2.6" opacity=".95"/>
+        <circle class="site" data-site="rnap" cx="393" cy="258" r="11" style="fill:var(--dna-site)" opacity=".9"/>
+        <circle class="site" data-site="gyrase" cx="441" cy="292" r="11" style="fill:var(--dna-site)" opacity=".9"/>
+
+        <g class="site" data-site="ribo50">
+          <circle cx="302" cy="246" r="7.5" style="fill:var(--s-ribo50)" opacity=".95"/>
+          <circle cx="316" cy="262" r="5.5" style="fill:var(--s-ribo50)" opacity=".8"/>
+        </g>
+        <g class="site" data-site="ribo30">
+          <circle cx="306" cy="300" r="6.5" style="fill:var(--s-ribo30)" opacity=".95"/>
+          <circle cx="322" cy="313" r="4.8" style="fill:var(--s-ribo30)" opacity=".8"/>
+        </g>
+        <g class="site" data-site="atp">
+          <circle cx="584" cy="280" r="15" style="fill:var(--s-fill);stroke:var(--s-atp)" stroke-width="2.4"/>
+          <path d="M584 268 v24 M574 280 h20" style="stroke:var(--s-atp)" stroke-width="2.2"/>
+        </g>
+        <g class="site" data-site="efflux">
+          <rect x="470" y="340" width="26" height="16" rx="5" style="fill:var(--s-fill);stroke:var(--s-efflux)" stroke-width="2.2"/>
+          <path d="M483 340 v-13 M478 332 l5 -6 l5 6" style="stroke:var(--s-efflux)" stroke-width="2" fill="none"/>
+        </g>
+        <ellipse class="site" data-site="energy" cx="352" cy="340" rx="20" ry="10" fill="none" style="stroke:var(--s-energy)" stroke-width="2.4"/>
+        <path class="site" data-site="pepti" d="M268 236 l14 -9 l14 9 l-14 9 z" fill="none" style="stroke:var(--s-pepti)" stroke-width="2.2"/>
+        <path class="site" data-site="nitro" d="M520 232 l9 -15 l9 15 z" fill="none" style="stroke:var(--s-nitro)" stroke-width="2.4"/>
+      </g>
+      <g id="marks"></g>
+      <g id="nodes"></g>
+    </svg>
+
+    <div class="legend">
+      <span><i style="background:var(--susceptible)"></i>Susceptible</span>
+      <span><i style="background:var(--resistant)"></i>Resistant</span>
+      <span><i style="background:var(--implied)"></i>Cross-resistance — implied by the source</span>
+      <span><i style="background:var(--hidden)"></i>Resistant, but not yet seen at this step</span>
+    </div>
+
+    <div class="dcard" id="dcard"><div class="empty">Hover or tap a drug to see where it acts, which test reveals resistance to it, and what it shares with other drugs.</div></div>
+
+    <div class="timeline">
+      <div class="tl-head">
+        <button class="play" id="play" aria-label="Play the timeline">&#9654;</button>
+        <h4>WHAT YOU KNOW, STEP BY STEP</h4>
+        <span class="now" id="now"></span>
+      </div>
+      <div class="track" id="track"><div class="fillbar" id="fillbar"></div></div>
+      <div class="tl-cite">Test order and coverage: NTEP DR-TB 2024, Ch. 2 integrated algorithm footnote 3, p. 17; Table 3.4, p. 31. The sources give no turnaround times, so the axis shows order, not days.</div>
+    </div>
+
+    <div class="mut" id="mut">
+      <h4>Which isoniazid mutation?</h4>
+      <p>This fork decides whether ethionamide falls with isoniazid — and it is where WHO and NTEP part ways on the 9-month regimen.</p>
+      <div class="mopts">
+        <button data-m="katG"><b>katG</b><small>Isoniazid resistance. Ethionamide is unaffected.</small></button>
+        <button data-m="inhA"><b>inhA promoter</b><small>Low-level isoniazid resistance <em>and</em> high-level resistance to ethionamide / prothionamide.</small></button>
+        <button data-m="both"><b>katG + inhA</b><small>WHO: high-dose isoniazid and thioamides not effective.</small></button>
+      </div>
+      <div class="src">WHO Handbook M4 2025 — Annex 1, isoniazid p. 270, ethionamide p. 265 · WHO M4 2025, p. 97</div>
+    </div>
+  </div>
+
+  <!-- ================= RAIL ================= -->
+  <div class="rail">
+    <div class="pane masked" id="pane-cls">
+      <h3>CLASSIFICATION</h3>
+      <div class="cls" id="cls"><div class="badge">DS-TB</div><div class="why"></div></div>
+      <div class="prov" id="prov"></div>
+    </div>
+
+    <div class="pane masked" id="pane-dur">
+      <h3>SHORTEST REGIMEN STILL STANDING</h3>
+      <div class="months" id="months"><div class="fill"></div><div class="lbl"></div></div>
+      <div class="ticks"><span>0</span><span>6</span><span>12</span><span>18</span><span>24 mo</span></div>
+      <div class="delta" id="delta"></div>
+    </div>
+
+    <div class="pane masked" id="pane-reg">
+      <h3>REGIMENS</h3>
+      <div id="regs"></div>
+      <div class="grp" id="grp"></div>
+      <div class="src">NTEP DR-TB 2024 §3.3–3.9 · WHO M4 2025 Rec. 3.1 p. 115, Hr-TB pp. 140–143 · NTEP/ICMR STW DS-TB 2022. Assumes an adult, 14 or older, with no other exclusions.</div>
+    </div>
+
+    <div class="pane" id="xpane" style="display:none">
+      <h3>CROSS-RESISTANCE IN PLAY</h3>
+      <div id="xlist"></div>
+    </div>
+
+    <div class="pane masked" id="pane-cost">
+      <h3>WHAT IT COSTS</h3>
+      <div class="chips" id="burden"></div>
+      <div class="src">Monitoring triggers: NTEP DR-TB 2024 Annexure 4 p. 64 (ECG) · Table 3.4 p. 31</div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <b>Teaching model, not decision support.</b> It shows how resistance, testing and regimen choice connect; it does not know your
+  patient. Drug targets and cross-resistance are from the WHO operational handbook, Module 4 (2025), Annex 1. Test order, regimens and
+  eligibility are from NTEP's National Guidelines for Management of Drug Resistant TB (2024), with WHO Module 4 (2025) where it differs.
+  Nothing here has been clinically verified yet.
+</div>
+
+<script>
+/* =====================================================================
+   DATA — every clinical line carries its source.
+   HB = WHO operational handbook M4 2025 (printed pages)
+   WHO = WHO consolidated guidelines M4 2025 (printed pages)
+   NTEP = National Guidelines for Management of DR-TB, Nov 2024 (printed pages)
+   ===================================================================== */
+const HB='WHO Handbook M4 2025, Annex 1', WHO='WHO M4 2025', NTEP='NTEP DR-TB 2024';
+
+/* test stages: 1 NAAT · 2 FL-LPA · 3 SL-LPA · 4 LC-DST · 5 the organism (truth) */
+const STAGES = [
+  {n:1, lb:'NAAT', sb:'rifampicin'},
+  {n:2, lb:'First-line LPA', sb:'isoniazid · katG / inhA'},
+  {n:3, lb:'Second-line LPA', sb:'fluoroquinolones · amikacin'},
+  {n:4, lb:'Liquid culture DST', sb:'Bdq · Lzd · Pa · Z'},
+  {n:5, lb:'The organism', sb:'everything, seen or not'},
+];
+const NEVER = 99;
+
+const DRUGS = [
+  {id:'Bdq', name:'BEDAQUILINE',  site:'atp',    a:0,   seen:4,
+   mech:'Inhibits ATP synthesis, leaving the bacillus without the energy it needs for replication and latency.', mp:252,
+   key:'atpE, Rv0678', test:'Liquid culture DST, where available'},
+  {id:'Cfz', name:'CLOFAZIMINE',  site:'efflux', a:42,  seen:NEVER,
+   mech:'Highly lipophilic; interferes with the proton-motive force, destabilising the membrane and ultimately ATP production.', mp:255,
+   key:'Rv0678', test:'Not on NTEP’s liquid-culture DST panel. WHO: use clofazimine DST where available (HB p. 87).'},
+  {id:'Mfx', name:'MOXIFLOXACIN', site:'gyrase', a:72,  seen:3,
+   mech:'Inhibits DNA gyrase — in M. tuberculosis the sole topoisomerase targeted — blocking DNA replication.', mp:282,
+   key:'DNA gyrase', test:'Second-line LPA, or NAAT for FQ'},
+  {id:'Lfx', name:'LEVOFLOXACIN', site:'gyrase', a:100, seen:3,
+   mech:'Inhibits DNA gyrase — in M. tuberculosis the sole topoisomerase targeted — blocking DNA replication.', mp:273,
+   key:'DNA gyrase', test:'Second-line LPA, or NAAT for FQ'},
+  {id:'Lzd', name:'LINEZOLID',    site:'ribo50', a:128, seen:4,
+   mech:'Blocks protein synthesis by binding the 23S ribosomal RNA of the large (50S) ribosomal subunit.', mp:276,
+   key:'23S rRNA', test:'Liquid culture DST'},
+  {id:'Z',   name:'PYRAZINAMIDE', site:'energy', a:156, seen:4,
+   mech:'A prodrug turned into pyrazinoic acid by pyrazinamidase; highly active in the acidic conditions where bacilli stop replicating.', mp:291,
+   key:'pyrazinamidase', test:'Liquid culture DST'},
+  {id:'E',   name:'ETHAMBUTOL',   site:'wall',   a:184, seen:NEVER,
+   mech:'Inhibits synthesis of arabinogalactan and lipoarabinomannan in the cell wall, preventing division.', mp:263,
+   test:'No reliable phenotypic DST (WHO M4 2025 p. 97). You may never see this resistance.'},
+  {id:'Cs',  name:'CYCLOSERINE',  site:'pepti',  a:210, seen:NEVER,
+   mech:'Blocks formation of the peptidoglycan layer of the cell wall.', mp:257,
+   test:'No reliable genotypic or phenotypic DST (WHO Handbook M4 2025 p. 133).'},
+  {id:'H',   name:'ISONIAZID',    site:'mycolic',a:238, seen:2,
+   mech:'A prodrug activated by katG; it then blocks inhA, the enzyme that builds the mycolic acids of the cell wall.', mp:270,
+   key:'katG, inhA', test:'First-line LPA, or NAAT for H'},
+  {id:'Eto', name:'ETHIONAMIDE',  site:'mycolic',a:264, seen:NEVER,
+   mech:'A prodrug activated by EthA; it then inhibits inhA — the same mycolic-acid enzyme isoniazid hits.', mp:265,
+   key:'EthA, inhA', test:'Seen on LPA only through an inhA mutation. Phenotypic DST is not reliable (WHO M4 2025 p. 97).'},
+  {id:'Am',  name:'AMIKACIN',     site:'ribo30', a:290, seen:3,
+   mech:'Binds the 30S ribosomal subunit irreversibly, causing misreading and blocking protein synthesis.', mp:300,
+   key:'eis', test:'Second-line LPA'},
+  {id:'R',   name:'RIFAMPICIN',   site:'rnap',   a:316, seen:1,
+   mech:'Inhibits RNA synthesis.', mp:294,
+   test:'NAAT (CBNAAT / Truenat) — the first result you get'},
+  {id:'Pa',  name:'PRETOMANID',   site:'nitro',  a:340, seen:4,
+   mech:'A prodrug activated by the Ddn enzyme / F420 co-enzyme; acts on the cell wall and inner metabolism.', mp:288,
+   key:'Ddn', test:'Liquid culture DST, where available'},
+];
+const D = Object.fromEntries(DRUGS.map(d=>[d.id,d]));
+
+/* each edge is a sentence in the handbook's own "Cross-resistance" row */
+const CROSS = [
+  {from:'Bdq', to:'Cfz', note:'Cross-resistance through efflux-pump upregulation (Rv0678).', src:'bedaquiline p. 252 · clofazimine p. 255'},
+  {from:'Cfz', to:'Bdq', note:'Cross-resistance through efflux-pump upregulation (Rv0678).', src:'clofazimine p. 255 · bedaquiline p. 252'},
+  {from:'Lfx', to:'Mfx', note:'Class effect among the fluoroquinolones in vitro.', src:'levofloxacin p. 273'},
+  {from:'Mfx', to:'Lfx', note:'Class effect among the fluoroquinolones in vitro.', src:'moxifloxacin p. 282'},
+  {from:'H',   to:'Eto', when:s=>s.hMut==='inhA'||s.hMut==='both',
+   note:'An inhA promoter mutation gives low-level isoniazid resistance and high-level resistance to the thioamides.',
+   src:'isoniazid p. 270 · ethionamide p. 265'},
+];
+/* the handbook's "Cross-resistance" row, per drug sheet */
+const CROSS_ROW = {
+  Bdq:'Reported between bedaquiline and clofazimine, through efflux pump-mediated resistance and other mechanisms (p. 252).',
+  Cfz:'Reported between bedaquiline and clofazimine, through efflux pump-mediated resistance and others (p. 255).',
+  Lfx:'In general, a class effect of cross-resistance among the fluoroquinolones in vitro (p. 273).',
+  Mfx:'In general, a class effect of cross-resistance among the fluoroquinolones in vitro (p. 282).',
+  H:'Mutations in the inhA promoter may cause low-level isoniazid resistance and resistance to the thionamides (p. 270).',
+  Eto:'Complete cross-resistance between ethionamide and prothionamide. With an inhA mutation, cross-resistance with isoniazid (p. 265).',
+  R:'Organisms resistant to rifampicin are likely to be resistant to other rifamycins (p. 294).',
+  Cs:'No cross-resistance with other drugs (p. 257).', E:'Not reported (p. 263).', Z:'None reported (p. 291).',
+  Am:'Cross-resistance with capreomycin and kanamycin; eis mutations may confer amikacin but not streptomycin resistance (pp. 300, 303).',
+  Lzd:'Cross-resistance with other oxazolidinones not fully documented (p. 276).',
+  Pa:'Limited published information (p. 288). Previous delamanid exposure may suggest cross-resistance (p. 87).',
+};
+
+const REGIMENS = [
+  {id:'ds',    name:'Drug-susceptible: 2HRZE / 4HRE', short:'H R Z E', months:6, n:4, drugs:['H','R','Z','E']},
+  {id:'hr',    name:'Hr-TB: 6 (H)REZ + levofloxacin', short:'Lfx R E Z', months:6, n:4, drugs:['Lfx','R','E','Z']},
+  {id:'bpalm', name:'BPaLM', short:'Bdq Pa Lzd Mfx', months:6, n:4, drugs:['Bdq','Pa','Lzd','Mfx']},
+  {id:'bpal',  name:'BPaL — WHO, when the FQ is dropped', short:'Bdq Pa Lzd', months:6, n:3, drugs:['Bdq','Pa','Lzd']},
+  {id:'short', name:'9–11 month shorter oral (Lzd version)', short:'Bdq Lfx Cfz Z E Hh Lzd', months:9, n:7, drugs:['Bdq','Lfx','Cfz','Z','E','Lzd']},
+  {id:'long',  name:'18–20 month longer oral', short:'Bdq Lfx Lzd Cfz Cs', months:18, n:5, drugs:['Bdq','Lfx','Lzd','Cfz','Cs']},
+];
+const NTEP_ORDER = ['ds','hr','bpalm','short','long'];
+
+/* =====================================================================
+   CASES — the profile is set; every consequence comes from the engine.
+   ===================================================================== */
+const CASES = [
+  {id:'xpert', tag:'THE MIMIC', title:'“Rifampicin sensitive” on NAAT', res:['H'], hMut:'katG', stage:1,
+   story:'NAAT: <b>MTB detected, rifampicin resistance not detected.</b> It reads as drug-susceptible TB, and first-line treatment starts.',
+   notice:'Step the timeline to <b>First-line LPA</b>. Isoniazid resistance was there all along — this is Hr-TB, a different regimen. A rifampicin-sensitive NAAT starts first-line treatment <i>and</i> sends a first-line LPA for exactly this reason.',
+   cite:'NTEP DR-TB 2024, Ch. 2 algorithm footnote 3, p. 17'},
+  {id:'rr', tag:'RR-TB', title:'Rifampicin resistant, isoniazid intact', res:['R'], stage:5,
+   story:'Rifampicin resistance with no isoniazid resistance.',
+   notice:'Not MDR — yet it goes down the DR-TB pathway all the same, because rifampicin resistance is the trigger. BPaLM is first choice for eligible patients aged 14 and above.',
+   cite:'NTEP DR-TB 2024 §3.3, p. 23'},
+  {id:'mdr', tag:'MDR-TB', title:'Classic MDR (katG)', res:['R','H'], hMut:'katG', stage:5,
+   story:'Rifampicin and isoniazid both lost, through a katG mutation.',
+   notice:'BPaLM first; if ineligible, the 9–11 month shorter regimen before the 18–20 month longer one.',
+   cite:'NTEP DR-TB 2024 §3.3 p. 23, §3.3.8 and §3.4 p. 32'},
+  {id:'inha', tag:'THE FORK', title:'MDR through inhA', res:['R','H'], hMut:'inhA', stage:5,
+   story:'Same MDR, but the isoniazid resistance comes from the inhA promoter.',
+   notice:'Ethionamide falls with it. It doesn’t close the shorter regimen, because NTEP uses the linezolid version in place of ethionamide.',
+   cite:'WHO Handbook M4 2025 pp. 265, 270 · NTEP DR-TB 2024 §3.4, p. 32'},
+  {id:'both', tag:'SOURCES DIFFER', title:'katG + inhA together', res:['R','H'], hMut:'both', stage:5,
+   story:'Both isoniazid mutations at once.',
+   notice:'WHO: high-dose isoniazid and thioamides are not effective, so the 9-month regimen may not be used. NTEP: the linezolid-version shorter regimen can still be given. Look at the regimen pane.',
+   cite:'WHO M4 2025 p. 97 · NTEP DR-TB 2024 §3.4.1 criterion viii, p. 32'},
+  {id:'prexdr', tag:'PRE-XDR', title:'MDR with fluoroquinolone resistance', res:['R','H','Lfx'], hMut:'katG', stage:5,
+   story:'Second-line LPA shows levofloxacin resistance.',
+   notice:'Moxifloxacin falls with it (class effect), and the shorter regimen closes. On BPaLM the sources differ: NTEP keeps moxifloxacin for the full course; WHO drops it to BPaL.',
+   cite:'WHO Handbook M4 2025 p. 273 · NTEP DR-TB 2024 §3.3 and §3.4.1 · WHO M4 2025'},
+  {id:'pump', tag:'ONE PUMP', title:'Bedaquiline lost — and clofazimine with it', res:['R','H','Bdq'], hMut:'katG', stage:5,
+   story:'Liquid-culture DST shows bedaquiline resistance.',
+   notice:'Clofazimine goes too: both are pushed out by the same efflux pump. BPaLM and the shorter regimen both close; the longer regimen is rebuilt around the losses.',
+   cite:'WHO Handbook M4 2025 pp. 252, 255 · WHO M4 2025 Rec. 3.1, p. 115'},
+  {id:'pza', tag:'MID-COURSE', title:'Pyrazinamide resistance in the intensive phase', res:['R','H','Z'], hMut:'katG', stage:4,
+   story:'A patient started on the 9–11 month shorter regimen; liquid-culture DST then shows pyrazinamide resistance.',
+   notice:'The shorter regimen closes — NTEP switches the patient to the longer oral regimen. BPaLM, which has no pyrazinamide, is unaffected.',
+   cite:'NTEP DR-TB 2024 §3.4.1(vi), p. 32'},
+  {id:'xdr', tag:'XDR-TB', title:'MDR + FQ + bedaquiline', res:['R','H','Lfx','Bdq'], hMut:'katG', stage:5,
+   story:'Fluoroquinolone and bedaquiline resistance on top of MDR.',
+   notice:'NTEP still treats this with the longer oral regimen — 20 months for XDR-TB — rebuilt around what is left. See the Group A / B / C count under the regimens.',
+   cite:'NTEP DR-TB 2024 p. 35 · WHO M4 2025 Rec. 3.1, p. 115'},
+  {id:'unseen', tag:'NEVER SEEN', title:'The resistance no test shows', res:['R','H','E','Cs'], hMut:'katG', stage:4,
+   story:'Every test is back. The organism is also resistant to ethambutol and cycloserine.',
+   notice:'You can’t see either: there is no reliable DST for them. Step to <b>The organism</b> to see what was really there. Cycloserine sits in the longer regimen, so this is why WHO says use it only when other evidence suggests it will work.',
+   cite:'WHO M4 2025 p. 97 · WHO Handbook M4 2025 p. 133'},
+];
+
+/* =====================================================================
+   COURSE — guided steps over the same engine.
+   ===================================================================== */
+const COURSE = [
+  {t:'Thirteen drugs, one organism', res:[], stage:5,
+   p:'Each drug is wired to the part of <i>M. tuberculosis</i> it attacks. <b>Hover any drug</b> to read its mechanism and which test would reveal resistance to it. When the organism becomes resistant, that target goes dark.',
+   c:'Drug targets: WHO Handbook M4 2025, Annex 1'},
+  {t:'Rifampicin is the hinge', res:['R'], stage:5,
+   p:'Rifampicin resistance alone sends the patient down the drug-resistant pathway, whatever isoniazid does — so it is the first result the algorithm asks for. Resistance to rifampicin usually means resistance to the other rifamycins too.',
+   c:'NTEP DR-TB 2024 Ch. 2, p. 17 · WHO Handbook M4 2025 p. 294'},
+  {t:'Isoniazid: the mutation matters', res:['R','H'], hMut:'inhA', stage:5,
+   p:'With an <b>inhA</b> mutation, ethionamide falls with isoniazid — watch the amber arc. Try switching the mutation to <b>katG</b> below and ethionamide comes back.',
+   c:'WHO Handbook M4 2025 pp. 265, 270'},
+  {t:'katG + inhA: where WHO and NTEP part', res:['R','H'], hMut:'both', stage:5,
+   p:'With both mutations, WHO says high-dose isoniazid and thioamides don’t work and the 9-month regimen may not be used. NTEP keeps the linezolid version of the shorter regimen open. Neither is hidden: the regimen pane shows both.',
+   c:'WHO M4 2025 p. 97 · NTEP DR-TB 2024 §3.4.1 viii, p. 32'},
+  {t:'Fluoroquinolones guard the shorter regimen', res:['R','H','Lfx'], hMut:'katG', stage:5,
+   p:'Levofloxacin resistance takes moxifloxacin with it, and the 9–11 month regimen closes. This is pre-XDR — and BPaLM is where NTEP and WHO differ again.',
+   c:'WHO Handbook M4 2025 p. 273 · NTEP DR-TB 2024 §3.4.1, p. 32'},
+  {t:'One pump, two drugs', res:['R','H','Lfx','Bdq'], hMut:'katG', stage:5,
+   p:'Bedaquiline and clofazimine share an efflux pump (Rv0678), so losing one loses both. With a fluoroquinolone already gone this is XDR-TB — and the duration bar stretches to 20 months.',
+   c:'WHO Handbook M4 2025 pp. 252, 255 · NTEP DR-TB 2024 p. 35'},
+  {t:'You only see what you have tested', res:['H'], hMut:'katG', stage:1,
+   p:'The organism is isoniazid resistant — but at <b>NAAT</b> you only know about rifampicin, so it looks drug-susceptible. <b>Press play</b> on the timeline and watch the picture change as each result comes in.',
+   c:'NTEP DR-TB 2024 Ch. 2 algorithm footnote 3, p. 17'},
+  {t:'…and some you never see', res:['R','H','E','Cs'], hMut:'katG', stage:4,
+   p:'Every test is back, yet ethambutol and cycloserine resistance are invisible — there is no reliable DST for either. Step to <b>The organism</b> to see them.',
+   c:'WHO M4 2025 p. 97 · WHO Handbook M4 2025 p. 133'},
+];
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const S = {res:new Set(), hMut:null, stage:5, mode:'explore', focus:null, course:0, caseId:null,
+           drill:null, drillScore:{right:0,total:0,streak:0}};
+
+/* =====================================================================
+   ENGINE (pure functions of state)
+   ===================================================================== */
+const crossActive = (c, set, st) => set.has(c.from) && !set.has(c.to) && (!c.when || c.when(st));
+
+/** Which resistances are visible at the current step. */
+function knownSet(st){
+  if (st.stage>=5) return new Set(st.res);
+  const k = new Set();
+  for (const id of st.res) if (D[id].seen <= st.stage) k.add(id);
+  return k;
+}
+/** Cross-resistance inferred from a set of resistances. */
+function implied(set, st){
+  const out = new Map();
+  for (const c of CROSS) if (crossActive(c,set,st)) out.set(c.to,c);
+  // isoniazid's mutation is reported by the LPA, so the inhA inference needs H to be visible
+  return out;
+}
+function view(st){
+  const known = knownSet(st);
+  const truthImp = implied(new Set(st.res), st);
+  const imp = implied(known, st);
+  // resistance that reaches a drug through cross-resistance is still resistance:
+  // once that drug's own test is back, the lab shows it
+  if (st.stage<5) for (const [id,c] of truthImp) if (!known.has(id) && D[id].seen<=st.stage) imp.set(id,c);
+  const out = id => known.has(id) || imp.has(id);
+  const hidden = new Set([...st.res, ...truthImp.keys()].filter(id=>!out(id)));
+  const untested = st.stage>=5 ? [] : DRUGS.filter(d=>d.seen>st.stage && d.seen!==NEVER).map(d=>d.id);
+  return {known, imp, out, hidden, untested};
+}
+
+function classify(out){
+  const R=out('R'), H=out('H'), FQ=out('Lfx')||out('Mfx'), A=out('Bdq')||out('Lzd');
+  /* definitions: NTEP DR-TB 2024 pp. 11–12 — pre-XDR and XDR build on MDR/RR-TB, so isoniazid is not required */
+  if(!R && !H) return {k:'DS-TB', sev:'ok', why:'Rifampicin and isoniazid both active. Standard first-line treatment.'};
+  if(!R && H)  return {k:'Hr-TB', sev:'warn', why:'Isoniazid resistant, rifampicin still active — a different regimen, not MDR.'};
+  if(FQ && A)  return {k:'XDR-TB', sev:'bad', why:'MDR/RR-TB plus any fluoroquinolone plus a Group A drug (bedaquiline or linezolid). NTEP p. 11.'};
+  if(FQ)       return {k:'Pre-XDR-TB', sev:'bad', why:'MDR/RR-TB plus resistance to any fluoroquinolone. NTEP p. 12.'};
+  if(!H)       return {k:'RR-TB', sev:'warn', why:'Rifampicin resistance is the trigger for the DR-TB pathway, whatever isoniazid does.'};
+  return {k:'MDR-TB', sev:'bad', why:'Resistant to both isoniazid and rifampicin.'};
+}
+
+function regimens(out, st){
+  const R=out('R'), H=out('H'), FQ=out('Lfx')||out('Mfx'), Z=out('Z');
+  const both = out('H') && st.hMut==='both';
+  const xdr = classify(out).k==='XDR-TB';
+  return REGIMENS.map(r=>{
+    let ok=true, why='', cite='', diff=false, name=r.name, short=r.short, months=r.months, n=r.n;
+    if(r.id==='ds'){ if(R||H){ ok=false; why = R? 'Rifampicin resistant.' : 'Isoniazid resistant.'; } }
+    if(r.id==='hr'){
+      if(R){ ok=false; why='Rifampicin resistant — this regimen is built around it.'; }
+      else if(!H){ ok=false; why='Only for isoniazid-resistant, rifampicin-susceptible TB.'; }
+      else if(Z){ ok=false; why='Pyrazinamide resistance on top of Hr-TB: the regimen has to be designed individually.'; cite=WHO+' p. 140'; }
+      else if(FQ){ name='Hr-TB: 6 (H)REZ, no levofloxacin'; short='R E Z (H)'; n=3;
+                   why='Fluoroquinolone resistant — levofloxacin is left out and 6(H)REZ is given.'; cite=WHO+' p. 140'; }
+    }
+    if(r.id==='bpalm'||r.id==='bpal'){
+      if(!R){ ok=false; why='For MDR/RR-TB.'; }
+      else if(out('Bdq')||out('Lzd')||out('Pa')){ ok=false;
+        why='Resistance to '+['Bdq','Lzd','Pa'].filter(out).join(', ')+' — a core drug of this regimen.'; }
+      else if(r.id==='bpalm' && FQ){ diff=true;
+        why='NTEP keeps moxifloxacin for the full course irrespective of fluoroquinolone resistance; WHO drops it, leaving BPaL.';
+        cite=NTEP+' §3.3, pp. 23–30 · '+WHO; }
+      else if(r.id==='bpal' && !FQ){ ok=false; why='Only when the fluoroquinolone has to be dropped.'; }
+    }
+    if(r.id==='short'){
+      if(!R){ ok=false; why='For MDR/RR-TB.'; }
+      else if(FQ){ ok=false; why='Fluoroquinolone resistance closes the shorter regimen — it needs FQ susceptibility.'; cite=NTEP+' §3.4.1 ii, p. 32'; }
+      else if(out('Bdq')||out('Lzd')){ ok=false; why='A core drug of this regimen is lost.'; }
+      else if(Z){ ok=false; why='Pyrazinamide resistance in the intensive phase: switch to the longer oral regimen.'; cite=NTEP+' §3.4.1 vi, p. 32'; }
+      else if(both){ diff=true;
+        why='WHO: with katG and inhA together, high-dose isoniazid and thioamides are not effective and the 9-month regimen may not be used. NTEP: the linezolid version can still be given.';
+        cite=WHO+' p. 97 · '+NTEP+' §3.4.1 viii, p. 32'; }
+    }
+    if(r.id==='long'){
+      if(!R){ ok=false; why='For MDR/RR-TB.'; }
+      else {
+        if(xdr){ months=20; why='20 months for XDR-TB, modified around the lost drugs by the N/DDR-TBC committee.'; cite=NTEP+' p. 35, §3.3.8 p. 32'; }
+        const lost=['Bdq','Lfx','Lzd','Cfz','Cs'].filter(id => id==='Lfx' ? FQ : out(id));
+        if(lost.length){ short=r.short.split(' ').filter(d=>!lost.includes(d)).join(' ') || '—';
+          if(!xdr){ why='Rebuilt without '+lost.join(', ')+'.'; cite=NTEP+' §3.3.8, p. 32'; } }
+      }
+    }
+    // ethambutol has no reliable DST: a standing regimen can contain it while the organism resists it
+    if (ok && r.drugs.includes('E') && out('E') && st.stage>=5){
+      why = (why?why+' ':'') + 'Ethambutol in this regimen won’t work against this organism — and no reliable DST would have shown it.';
+      cite = (cite?cite+' · ':'') + WHO+' p. 97';
+    }
+    return {...r, ok, why, cite, diff, name, short, months, n};
+  });
+}
+
+/** WHO Rec 3.1: all three Group A + ≥1 Group B; if only one or two A, both B; add Group C if A+B can't reach four. */
+function groups(out){
+  const A = [['Lfx/Mfx', !(out('Lfx')||out('Mfx'))], ['Bdq', !out('Bdq')], ['Lzd', !out('Lzd')]];
+  const B = [['Cfz', !out('Cfz')], ['Cs', !out('Cs')]];
+  const a = A.filter(x=>x[1]).length, b = B.filter(x=>x[1]).length;
+  const needC = (a===3 ? a + Math.min(b,1) : a + b) < 4;
+  return {a, b, needC, A, B};
+}
+
+function firstChoice(regs){
+  for (const id of NTEP_ORDER){ const r=regs.find(x=>x.id===id); if(r && r.ok) return r; }
+  return null;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const mk = (t,at) => { const e=document.createElementNS(NS,t); for(const k in at) e.setAttribute(k,at[k]); return e; };
+const CX=430, CY=280, RX=352, RY=228;
+const SITES={ atp:[584,280], efflux:[483,348], gyrase:[441,292], ribo50:[309,254], energy:[352,340],
+              wall:[252,330], pepti:[282,236], mycolic:[330,210], ribo30:[314,306], rnap:[393,258], nitro:[529,224] };
+const pos = a => { const r=a*Math.PI/180; return [CX+RX*Math.cos(r), CY+RY*Math.sin(r)]; };
+
+function build(){
+  const E=$('#edges'), X=$('#xedges'), N=$('#nodes'), M=$('#marks');
+  Object.entries(SITES).forEach(([k,[x,y]])=> M.appendChild(mk('circle',{cx:x,cy:y,r:17,fill:'none','stroke-width':2.2,class:'mark','data-site':k})));
+  DRUGS.forEach(d=>{
+    const [x,y]=pos(d.a), [sx,sy]=SITES[d.site];
+    E.appendChild(mk('line',{x1:x,y1:y,x2:sx,y2:sy,class:'edge','data-d':d.id}));
+    const w = Math.max(80, d.name.length*6.2+20);
+    const g = mk('g',{class:'node','data-d':d.id,role:'button',tabindex:'0','aria-label':d.name});
+    g.appendChild(mk('rect',{x:x-w/2,y:y-19,width:w,height:38,rx:10,class:'pill'}));
+    const c = mk('text',{x:x,y:y-1,'text-anchor':'middle',class:'code'}); c.textContent=d.id;
+    const n = mk('text',{x:x,y:y+12,'text-anchor':'middle',class:'nm'}); n.textContent=d.name;
+    const qb = mk('g',{class:'q-badge'});
+    qb.appendChild(mk('circle',{cx:x+w/2-4,cy:y-17,r:8}));
+    const qt = mk('text',{x:x+w/2-4,y:y-13.5,'text-anchor':'middle','font-size':'11','font-weight':'800'}); qt.textContent='?';
+    qb.appendChild(qt);
+    g.append(c,n,qb);
+    g.addEventListener('click',()=>{ S.focus=d.id; toggle(d.id); });
+    g.addEventListener('mouseenter',()=>{ S.focus=d.id; renderCard(); renderFocus(); });
+    g.addEventListener('focus',()=>{ S.focus=d.id; renderCard(); renderFocus(); });
+    g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle(d.id);} });
+    N.appendChild(g);
+  });
+  CROSS.forEach((c,i)=>{
+    const [ax,ay]=pos(D[c.from].a), [bx,by]=pos(D[c.to].a);
+    const mx=(ax+bx)/2, my=(ay+by)/2, k=0.72;
+    X.appendChild(mk('path',{d:`M${ax} ${ay} Q ${CX+(mx-CX)*k} ${CY+(my-CY)*k} ${bx} ${by}`,class:'xedge','data-x':i}));
+  });
+  const T=$('#track');
+  STAGES.forEach(s=>{
+    const b=document.createElement('button'); b.className='stop'; b.dataset.n=s.n;
+    b.innerHTML=`<div class="dot"></div><span class="lb">${s.lb}</span><span class="sb">${s.sb}</span>`;
+    b.addEventListener('click',()=>{ stopPlay(); S.stage=s.n; render(); });
+    T.appendChild(b);
+  });
+}
+
+function toggle(id){
+  if (S.mode==='drill') return;
+  if(S.res.has(id)){ S.res.delete(id); if(id==='H') S.hMut=null; }
+  else { S.res.add(id); if(id==='H' && !S.hMut) S.hMut='katG'; }
+  render();
+}
+
+function renderFocus(){
+  document.querySelectorAll('.edge').forEach(e=>e.setAttribute('data-focus', e.dataset.d===S.focus?'true':'false'));
+}
+
+function renderCard(){
+  const d = D[S.focus]; if(!d) return;
+  const v = view(S);
+  const state = v.known.has(d.id)?'Resistant': v.imp.has(d.id)?'Cross-resistant': v.hidden.has(d.id)?'Resistant — not yet seen':'Susceptible';
+  const xr = CROSS_ROW[d.id] ? `${CROSS_ROW[d.id]} <span style="color:var(--ink-4);font-family:var(--mono);font-size:9.5px">${HB}</span>` : '';
+  $('#dcard').innerHTML = `
+    <div class="h"><b>${d.id}</b><span>${d.name}</span><em>${state}</em></div>
+    <div class="l"><b>How it works.</b> ${d.mech} <span style="color:var(--ink-4);font-family:var(--mono);font-size:9.5px">${HB} p. ${d.mp}</span></div>
+    <div class="l"><b>Seen by.</b> ${d.test}${d.key?` · <span style="color:var(--ink-3)">key: ${d.key}</span>`:''}</div>
+    ${xr?`<div class="l"><b>Cross-resistance.</b> ${xr}</div>`:''}`;
+}
+
+function render(){
+  const v = view(S);
+  const drillMask = S.mode==='drill' && S.drill && !S.drill.answered;
+
+  // nodes, edges, sites, marks
+  DRUGS.forEach(d=>{
+    const st = v.known.has(d.id) ? 'resistant' : v.imp.has(d.id) ? 'implied' : v.hidden.has(d.id) ? 'hidden' : 'ok';
+    const node = document.querySelector(`.node[data-d="${d.id}"]`);
+    node.setAttribute('data-state', st);
+    node.setAttribute('data-locked', S.mode==='drill'?'true':'false');
+    document.querySelector(`.edge[data-d="${d.id}"]`).setAttribute('data-state',st);
+  });
+  document.querySelectorAll('.site').forEach(s=>{
+    const hit = DRUGS.some(d=>d.site===s.dataset.site && v.out(d.id));
+    s.setAttribute('data-hit', hit?'true':'false');
+  });
+  document.querySelectorAll('.mark').forEach(m=>{
+    const ds = DRUGS.filter(d=>d.site===m.dataset.site);
+    const st = ds.some(d=>v.known.has(d.id))?'resistant': ds.some(d=>v.imp.has(d.id))?'implied': ds.some(d=>v.hidden.has(d.id))?'hidden':'';
+    m.setAttribute('data-on', st);
+  });
+  CROSS.forEach((c,i)=>{
+    const el = document.querySelector(`.xedge[data-x="${i}"]`);
+    el.setAttribute('data-on', crossActive(c, v.known, S) ? 'true':'false');
+  });
+  renderFocus();
+  if (S.focus) renderCard();
+
+  // timeline
+  document.querySelectorAll('.stop').forEach(b=>{
+    const n=+b.dataset.n; b.setAttribute('data-on', n===S.stage?'true':'false'); b.setAttribute('data-past', n<S.stage?'true':'false');
+  });
+  $('#fillbar').style.width = ((S.stage-1)/4*80)+'%';
+  $('#now').textContent = S.stage>=5 ? 'Showing the whole organism' : `Showing what you know after ${STAGES[S.stage-1].lb}`;
+
+  // isoniazid fork — the LPA reports the mutation, so it shows once H is visible
+  const m=$('#mut'); m.setAttribute('data-on', (v.known.has('H') || (S.stage>=5 && S.res.has('H'))) ? 'true':'false');
+  m.querySelectorAll('.mopts button').forEach(b=>{ b.setAttribute('data-on', b.dataset.m===S.hMut?'true':'false'); b.disabled = S.mode==='drill'; });
+
+  // classification
+  const c = classify(v.out);
+  const cls=$('#cls'); cls.setAttribute('data-sev', c.sev);
+  cls.querySelector('.badge').textContent = c.k + (S.stage<5 && (v.hidden.size || v.untested.length) ? '?' : '');
+  cls.querySelector('.why').textContent = c.why;
+  const prov=$('#prov');
+  if (S.stage<5 && (v.hidden.size || v.untested.length)){
+    const hid=[...v.hidden], unt=v.untested.filter(id=>!v.known.has(id));
+    prov.setAttribute('data-on','true');
+    prov.innerHTML = `<b>Provisional.</b> ` +
+      (unt.length?`Not yet tested: ${unt.join(', ')}. `:'') +
+      (hid.length?`<b>${hid.length} resistance${hid.length>1?'s':''} already present but invisible at this step:</b> ${hid.join(', ')}.`:'');
+  } else prov.setAttribute('data-on','false');
+
+  // regimens
+  const regs = regimens(v.out, S);
+  $('#regs').innerHTML = regs.map(r=>`
+    <div class="reg" data-ok="${r.ok}">
+      <div class="dot"></div>
+      <div><div class="t">${r.name}</div><div class="s">${r.short}</div>
+      ${r.why?`<div class="r">${r.diff?'<b>SOURCES DIFFER</b>':''}${r.why}${r.cite?`<i>${r.cite}</i>`:''}</div>`:''}</div>
+    </div>`).join('');
+  const R = v.out('R');
+  if (R){
+    const g = groups(v.out);
+    $('#grp').innerHTML = `Longer-regimen building blocks still effective: Group A <b>${g.a}/3</b> · Group B <b>${g.b}/2</b>` +
+      (g.needC?` — <b style="color:var(--implied)">Group C agents needed</b> to reach four effective drugs.`:' — enough to start with four effective drugs.') +
+      `<span style="display:block;font-family:var(--mono);font-size:9px;color:var(--ink-4);margin-top:2px">${WHO} Rec. 3.1, p. 115 · cycloserine resistance counts only if you know about it</span>`;
+  } else $('#grp').innerHTML='';
+
+  // duration — the shortest standing regimen
+  const standing = regs.filter(r=>r.ok).sort((a,b)=>a.months-b.months);
+  const best = standing[0];
+  const mo = best ? best.months : 20;
+  const box=$('#months');
+  box.setAttribute('data-sev', mo<=6?'ok':mo<=11?'warn':'bad');
+  box.querySelector('.fill').style.width = Math.min(100, mo/24*100)+'%';
+  box.querySelector('.lbl').textContent = !best ? '—' : best.id==='long' ? (mo===20?'20 months':'18–20 months') : best.id==='short' ? '9–11 months' : '6 months';
+  $('#delta').innerHTML = !best ? 'No regimen in this model stands.'
+    : mo<=6 ? `Six months, ${best.n} drugs, all oral.`
+    : `<b>${mo>=18?(mo===20?'3.3×':'3×'):'1.5×'} longer</b> than drug-susceptible TB, with ${best.n} drugs.`;
+
+  // cross-resistance explanations
+  const xs = CROSS.filter(c=>crossActive(c, v.known, S));
+  $('#xpane').style.display = xs.length ? 'block' : 'none';
+  $('#xlist').innerHTML = xs.map(c=>`
+    <div class="xrow"><div class="arrow">${c.from} &rarr; ${c.to}</div>
+    <div class="txt">${c.note}<em>${HB}, ${c.src}</em></div></div>`).join('');
+
+  // cost
+  const drugsIn = best ? best.short.split(' ') : [];
+  const chips=[];
+  if(best) chips.push(`<span class="chip"><b>${best.n}</b> drugs</span>`);
+  if(drugsIn.includes('Bdq') || drugsIn.filter(d=>['Mfx','Cfz','Pa'].includes(d)).length>=2) chips.push('<span class="chip">ECG monitoring</span>');
+  if(drugsIn.includes('Lzd')) chips.push('<span class="chip">Blood counts · vision</span>');
+  if(mo>6) chips.push(`<span class="chip">~<b>${mo}</b> months of monthly follow-up</span>`);
+  $('#burden').innerHTML = chips.join('') || '<span class="chip">Nothing resistant yet</span>';
+
+  // drill masking
+  ['#pane-cls','#pane-dur','#pane-reg','#pane-cost'].forEach(id=>$(id).setAttribute('data-mask', drillMask?'true':'false'));
+  $('#xpane').style.visibility = drillMask ? 'hidden' : 'visible';
+
+  renderModePanel();
+}
+
+/* =====================================================================
+   MODES
+   ===================================================================== */
+function setProfile(p){
+  S.res = new Set(p.res||[]); S.hMut = p.hMut || (S.res.has('H') ? 'katG' : null); S.stage = p.stage || 5;
+}
+
+function renderModePanel(){
+  document.querySelectorAll('.modes button').forEach(b=>b.setAttribute('data-on', b.dataset.mode===S.mode?'true':'false'));
+  ['course','cases','drill'].forEach(m=>$('#p-'+m).setAttribute('data-on', S.mode===m?'true':'false'));
+  $('#reset').style.display = S.mode==='drill' ? 'none' : '';
+  $('#hint').textContent = S.mode==='drill' ? 'Read the organism and the step you are at, then answer.'
+    : 'Click any drug to make the organism resistant to it. Hover to see how it works.';
+
+  if (S.mode==='course'){
+    const k=S.course, L=COURSE[k];
+    $('#p-course').innerHTML = `<div class="card">
+      <div class="kicker">COURSE · ${k+1} OF ${COURSE.length}</div>
+      <h2>${L.t}</h2><p>${L.p}</p><div class="cite">${L.c}</div>
+      <div class="row">
+        <button class="ghost" id="c-prev" ${k===0?'disabled':''}>BACK</button>
+        <button class="btn" id="c-next">${k===COURSE.length-1?'FINISH':'NEXT'}</button>
+        <div class="dots">${COURSE.map((_,i)=>`<i data-on="${i<=k}"></i>`).join('')}</div>
+      </div></div>`;
+    $('#c-prev').onclick=()=>{ if(S.course>0){ S.course--; setProfile(COURSE[S.course]); render(); } };
+    $('#c-next').onclick=()=>{ if(S.course<COURSE.length-1){ S.course++; setProfile(COURSE[S.course]); render(); } else { S.mode='explore'; render(); } };
+  }
+
+  if (S.mode==='cases'){
+    const cur = CASES.find(c=>c.id===S.caseId);
+    $('#p-cases').innerHTML = `<div class="card">
+      <div class="kicker">CASES · PICK A PATTERN</div>
+      <div class="cases">${CASES.map(c=>`<button class="case" data-id="${c.id}" data-on="${c.id===S.caseId}">
+        <div class="tag">${c.tag}</div><div class="tt">${c.title}</div></button>`).join('')}</div>
+      ${cur?`<div class="casebox"><h2>${cur.title}</h2><p>${cur.story}</p><p><b>What to notice.</b> ${cur.notice}</p><div class="cite">${cur.cite}</div></div>`:''}
+    </div>`;
+    $('#p-cases').querySelectorAll('.case').forEach(b=>b.onclick=()=>{ S.caseId=b.dataset.id; setProfile(CASES.find(c=>c.id===S.caseId)); render(); });
+  }
+
+  if (S.mode==='drill') renderDrill();
+}
+
+/* ---------- DRILL ---------- */
+const CLS_OPTS = ['DS-TB','Hr-TB','RR-TB','MDR-TB','Pre-XDR-TB','XDR-TB'];
+const REG_OPTS = [['ds','2HRZE / 4HRE'],['hr','6 (H)REZ ± levofloxacin'],['bpalm','BPaLM'],['short','9–11 month shorter oral'],
+                  ['long','18–20 month longer oral'],['indiv','An individually designed regimen']];
+
+function newDrill(){
+  const pool = [
+    ()=>({res:[]}), ()=>({res:['H'],hMut:'katG'}), ()=>({res:['H'],hMut:'inhA'}), ()=>({res:['H','Lfx'],hMut:'katG'}),
+    ()=>({res:['H','Z'],hMut:'katG'}), ()=>({res:['R']}), ()=>({res:['R','H'],hMut:'katG'}), ()=>({res:['R','H'],hMut:'inhA'}),
+    ()=>({res:['R','H'],hMut:'both'}), ()=>({res:['R','H','Lfx'],hMut:'katG'}), ()=>({res:['R','H','Z'],hMut:'katG'}),
+    ()=>({res:['R','H','Bdq'],hMut:'katG'}), ()=>({res:['R','H','Lzd'],hMut:'inhA'}), ()=>({res:['R','H','Lfx','Bdq'],hMut:'katG'}),
+    ()=>({res:['R','Lfx']}), ()=>({res:['R','H','Pa'],hMut:'katG'}),
+  ];
+  let p; do { p = pool[Math.floor(Math.random()*pool.length)](); } while (S.drill && JSON.stringify(p)===S.drill.key);
+  setProfile({...p, stage:4});
+  const v = view(S), regs = regimens(v.out, S), cls = classify(v.out).k;
+  const fc = firstChoice(regs);
+  const ans = !fc ? 'indiv' : fc.id;
+  // Hr-TB with pyrazinamide resistance has no standard regimen in the model
+  const regAns = (!v.out('R') && v.out('H') && v.out('Z')) ? 'indiv' : ans;
+  S.drill = {key:JSON.stringify(p), cls, reg:regAns, pickCls:null, pickReg:null, answered:false, fc};
+}
+
+function renderDrill(){
+  if(!S.drill){ newDrill(); render(); return; }
+  const d=S.drill, sc=S.drillScore;
+  const known=[...view(S).known];
+  const mutTxt = known.includes('H') ? ` Isoniazid mutation on LPA: <b>${S.hMut==='both'?'katG + inhA':S.hMut}</b>.` : '';
+  const optBtn = (val,label,pick,right,group) => {
+    let r=''; if(d.answered){ if(val===right) r='right'; else if(val===pick) r='wrong'; }
+    return `<button class="opt" data-g="${group}" data-v="${val}" data-r="${r}" ${d.answered?'disabled':''}>${label}</button>`;
+  };
+  $('#p-drill').innerHTML = `<div class="card">
+    <div class="row" style="margin-top:0"><div class="kicker" style="margin:0">DRILL · ALL ROUTINE TESTS BACK</div>
+      <div class="score" style="margin-left:auto"><b>${sc.right}</b>/${sc.total} · streak <b>${sc.streak}</b></div></div>
+    <p style="margin-top:6px">The organism on screen is what NAAT, LPA and liquid-culture DST have shown.${mutTxt} Adult, 14 or older, no other exclusions.</p>
+    <div class="q">1. Classify it.</div>
+    <div class="opts">${CLS_OPTS.map(o=>optBtn(o,o,d.pickCls,d.cls,'cls')).join('')}</div>
+    <div class="q">2. Which regimen does NTEP put first?</div>
+    <div class="opts">${REG_OPTS.map(([v,l])=>optBtn(v,l,d.pickReg,d.reg,'reg')).join('')}</div>
+    ${d.answered?`<div class="verdict">${(d.pickCls===d.cls&&d.pickReg===d.reg)?'<b>Both right.</b> ':'<b>Not quite.</b> '}
+       It is <b>${d.cls}</b>; NTEP’s first choice is <b>${REG_OPTS.find(x=>x[0]===d.reg)[1]}</b>.
+       ${d.fc && d.fc.why ? d.fc.why : ''} The rail on the right now shows the full reasoning.</div>
+     <div class="row"><button class="btn" id="d-next">NEXT ORGANISM</button></div>`
+     :`<div class="row"><button class="btn" id="d-check" ${(d.pickCls&&d.pickReg)?'':'disabled'}>CHECK</button></div>`}
+  </div>`;
+  $('#p-drill').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    if(d.answered) return;
+    if(b.dataset.g==='cls') d.pickCls=b.dataset.v; else d.pickReg=b.dataset.v;
+    $('#p-drill').querySelectorAll(`.opt[data-g="${b.dataset.g}"]`).forEach(x=>x.style.borderColor = x===b ? 'var(--accent)' : '');
+    const chk=$('#d-check'); if(chk) chk.disabled = !(d.pickCls&&d.pickReg);
+  });
+  const chk=$('#d-check'); if(chk) chk.onclick=()=>{
+    d.answered=true; const ok = d.pickCls===d.cls && d.pickReg===d.reg;
+    sc.total++; if(ok){ sc.right++; sc.streak++; } else sc.streak=0;
+    render();
+  };
+  const nx=$('#d-next'); if(nx) nx.onclick=()=>{ newDrill(); render(); };
+}
+
+/* ---------- timeline playback ---------- */
+let playT=null;
+function stopPlay(){ if(playT){ clearInterval(playT); playT=null; $('#play').innerHTML='&#9654;'; } }
+$('#play').addEventListener('click',()=>{
+  if(playT){ stopPlay(); return; }
+  S.stage=1; render(); $('#play').innerHTML='&#10074;&#10074;';
+  playT=setInterval(()=>{ if(S.stage>=5){ stopPlay(); return; } S.stage++; render(); }, 1700);
+});
+
+/* ---------- wire up ---------- */
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  $('#theme').setAttribute('aria-label', t==='dark' ? 'Switch to light theme' : 'Switch to dark theme');
+  try{ localStorage.setItem('tbcompass.explorer.theme', t); }catch(e){}
+}
+(()=>{ let t='light'; try{ t = localStorage.getItem('tbcompass.explorer.theme') || 'light'; }catch(e){} setTheme(t); })();
+$('#theme').addEventListener('click',()=> setTheme(document.documentElement.dataset.theme==='dark' ? 'light' : 'dark'));
+build();
+$('#reset').addEventListener('click',()=>{ stopPlay(); S.res.clear(); S.hMut=null; S.stage=5; S.caseId=null; render(); });
+$('#mut').querySelectorAll('.mopts button').forEach(b=> b.addEventListener('click',()=>{ if(S.mode!=='drill'){ S.hMut=b.dataset.m; render(); } }));
+document.querySelectorAll('.modes button').forEach(b=>b.addEventListener('click',()=>{
+  stopPlay();
+  const m=b.dataset.mode; if(m===S.mode) return;
+  S.mode=m;
+  if(m==='course'){ S.course=0; setProfile(COURSE[0]); }
+  if(m==='cases'){ S.caseId=CASES[0].id; setProfile(CASES[0]); }
+  if(m==='drill'){ S.drill=null; newDrill(); }
+  if(m==='explore'){ S.stage=5; }
+  render();
+}));
+render();
+</script>
+</body>
+</html>
