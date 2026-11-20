@@ -119,6 +119,7 @@ p:last-child { margin-bottom: 0; }
 }
 .topbar .brand { display: flex; align-items: baseline; gap: 8px; font-weight: 680; letter-spacing: -0.02em; }
 .topbar .brand span { color: var(--accent-text); }
+.topbar .brand .logo { width: 24px; height: 24px; align-self: center; border-radius: 6px; flex: none; }
 .topbar .brand small { font-weight: 500; color: var(--text-3); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
 .topbar .spacer { flex: 1; }
 

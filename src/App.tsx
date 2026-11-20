@@ -163,6 +163,7 @@ export default function App() {
           )}
           <div className="brand" onClick={() => go('home')} role="button" tabIndex={0}
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && go('home')}>
+            <img className="logo" src={`${import.meta.env.BASE_URL}icons/icon.svg`} alt="" width={24} height={24} />
             TB <span>Compass</span>
           </div>
           <div className="spacer" />
